@@ -1,0 +1,78 @@
+name: Build BonDownloader Pro
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install PyQt6 playwright aiohttp requests flask flask-cors pyinstaller
+
+      - name: Download Chromium (macOS arm64)
+        run: |
+          python -m playwright install chromium
+          mkdir -p chromium/chromium_headless_shell-1223
+          cp -R ~/Library/Caches/ms-playwright/chromium_headless_shell-*/* chromium/chromium_headless_shell-1223/
+
+      - name: Build with PyInstaller
+        run: pyinstaller pro.spec --noconfirm --clean
+
+      - name: Create DMG
+        run: |
+          hdiutil create -size 800m -fs HFS+ -volname "BonDownloader Pro" /tmp/bon.dmg
+          hdiutil attach /tmp/bon.dmg -mountpoint /tmp/bon-mount
+          cp -R "dist/BonDownloader Pro.app" /tmp/bon-mount/
+          ln -s /Applications /tmp/bon-mount/Applications
+          hdiutil detach /tmp/bon-mount
+          hdiutil convert /tmp/bon.dmg -format UDZO -o BonDownloader-Pro-macOS.dmg
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: BonDownloader-Pro-macOS
+          path: BonDownloader-Pro-macOS.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install PyQt6 playwright aiohttp requests flask flask-cors pyinstaller
+
+      - name: Download Chromium (Windows x64)
+        run: |
+          python -m playwright install chromium
+          mkdir chromium\chromium_headless_shell-1223
+          xcopy /E /I "%LOCALAPPDATA%\ms-playwright\chromium_headless_shell-*" chromium\chromium_headless_shell-1223\
+
+      - name: Build with PyInstaller
+        run: pyinstaller pro.spec --noconfirm --clean
+
+      - name: Package as ZIP
+        run: |
+          Compress-Archive -Path "dist\BonDownloader Pro\*" -DestinationPath BonDownloader-Pro-Windows.zip
+
+      - name: Upload Windows ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: BonDownloader-Pro-Windows
+          path: BonDownloader-Pro-Windows.zip

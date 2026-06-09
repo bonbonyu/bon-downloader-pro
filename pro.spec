@@ -1,0 +1,69 @@
+# -*- mode: python ; coding: utf-8 -*-
+block_cipher = None
+
+a = Analysis(
+    ['gui_app.py'],
+    pathex=[],
+    binaries=[],
+    datas=[('chromium', 'chromium')],
+    hiddenimports=[
+        'PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets',
+        'playwright', 'playwright.async_api', 'aiohttp', 'requests',
+        'asyncio', 'threading', 'subprocess', 'sqlite3', 'flask',
+        'flask_cors', 'server'
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='BonDownloaderPro',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch='arm64',
+    codesign_identity=None,
+    entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='BonDownloaderPro',
+)
+
+app = BUNDLE(
+    coll,
+    name='BonDownloader Pro.app',
+    icon=None,
+    bundle_identifier='com.bon.downloader',
+    info_plist={
+        'CFBundleName': 'BonDownloader Pro',
+        'CFBundleDisplayName': 'BonDownloader Pro',
+        'CFBundleVersion': '1.0',
+        'CFBundleShortVersionString': '1.0',
+        'LSMinimumSystemVersion': '11.0',
+        'NSHighResolutionCapable': True,
+    },
+)
