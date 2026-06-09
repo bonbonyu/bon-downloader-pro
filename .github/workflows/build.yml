@@ -71,8 +71,10 @@ jobs:
         run: pyinstaller pro.spec --noconfirm --clean
 
       - name: Package as ZIP
+        shell: pwsh
         run: |
-          Compress-Archive -Path "dist\BonDownloader Pro\*" -DestinationPath BonDownloader-Pro-Windows.zip
+          $dist = Get-ChildItem -Path dist -Directory | Select-Object -First 1
+          Compress-Archive -Path "$($dist.FullName)\*" -DestinationPath BonDownloader-Pro-Windows.zip
 
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4
