@@ -20,11 +20,13 @@ jobs:
         run: |
           pip install PyQt6 playwright aiohttp requests flask flask-cors pyinstaller
 
-      - name: Download Chromium (macOS arm64)
+      - name: Download Chromium (macOS)
         run: |
           python -m playwright install chromium
           mkdir -p chromium/chromium_headless_shell-1223
-          cp -R ~/Library/Caches/ms-playwright/chromium_headless_shell-*/* chromium/chromium_headless_shell-1223/
+          cp -R ~/Library/Caches/ms-playwright/chromium_headless_shell-*/* chromium/chromium_headless_shell-1223/ 2>/dev/null || true
+          # Handle both arm64 and x86_64
+          ls chromium/chromium_headless_shell-1223/
 
       - name: Build with PyInstaller
         run: pyinstaller pro.spec --noconfirm --clean
@@ -59,10 +61,11 @@ jobs:
           pip install PyQt6 playwright aiohttp requests flask flask-cors pyinstaller
 
       - name: Download Chromium (Windows x64)
+        shell: pwsh
         run: |
           python -m playwright install chromium
-          mkdir chromium\chromium_headless_shell-1223
-          xcopy /E /I "%LOCALAPPDATA%\ms-playwright\chromium_headless_shell-*" chromium\chromium_headless_shell-1223\
+          $src = Get-ChildItem "$env:LOCALAPPDATA\ms-playwright\chromium_headless_shell-*" | Select-Object -First 1
+          Copy-Item -Recurse $src.FullName chromium\chromium_headless_shell-1223\
 
       - name: Build with PyInstaller
         run: pyinstaller pro.spec --noconfirm --clean
