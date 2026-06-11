@@ -79,30 +79,12 @@ class DownloadThread(QThread):
                     if t.get("status") == "error":
                         raise Exception(t.get("error", "下载失败"))
                     if t.get("status") == "done":
-                        file_url = f"{API_BASE}/api/file/{task_id}"
-                        break
+                        # 后端已保存文件，直接返回路径，不再重复下载
+                        return {"status": "done", "output_path": t.get("output_path", ""),
+                                "filename": t.get("filename", ""), "file_size": t.get("file_size", 0)}
                     p = t.get("progress", 0)
                     self.progress.emit(p)
                     self.log.emit(f"下载中: {p}%")
-
-        # 3. Download file
-        async with aiohttp.ClientSession() as s:
-            async with s.get(file_url) as r:
-                total = int(r.headers.get("content-length", 0))
-                dl = 0
-                fname = "video.mp4"
-                out = os.path.join(DOWNLOAD_DIR, fname)
-                with open(out, "wb") as f:
-                    async for chunk in r.content.iter_chunked(65536):
-                        if self.cancel_flag:
-                            os.remove(out)
-                            return {"status": "cancelled"}
-                        f.write(chunk)
-                        dl += len(chunk)
-                        if total > 0:
-                            self.progress.emit(int(dl / total * 100))
-
-        return {"status": "done", "output_path": out}
 
 
 class LoginWidget(QWidget):
