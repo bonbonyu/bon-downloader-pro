@@ -248,6 +248,13 @@ class DownloadWidget(QWidget):
         self.cancel_btn.setEnabled(False)
         self.cancel_btn.clicked.connect(self._cancel)
         btn_row.addWidget(self.cancel_btn)
+
+        self.check_btn = QPushButton("🔧 自检")
+        self.check_btn.setFont(QFont("Helvetica Neue", 14))
+        self.check_btn.setMinimumHeight(44)
+        self.check_btn.setStyleSheet("background:#34c759;color:#fff;border-radius:10;")
+        self.check_btn.clicked.connect(self._self_check)
+        btn_row.addWidget(self.check_btn)
         url_l.addLayout(btn_row)
         url_gb.setLayout(url_l)
         l.addWidget(url_gb)
@@ -305,6 +312,27 @@ class DownloadWidget(QWidget):
     def _on_error(self, msg):
         self._reset()
         self.log.append(f"❌ {msg}")
+
+    def _self_check(self):
+        self.log.clear()
+        self.log.append("🔍 正在自检...")
+        try:
+            resp = requests.get(f"{SERVER}/api/health", timeout=10)
+            if resp.status_code != 200:
+                self.log.append(f"❌ 后端无响应: HTTP {resp.status_code}")
+                return
+            data = resp.json()
+            self.log.append(f"整体状态: {'✅ 正常' if data.get('status') == 'ok' else '⚠️ 部分异常'}")
+            self.log.append("")
+            for name, check in data.get("checks", {}).items():
+                icon = "✅" if check.get("ok") else "❌"
+                self.log.append(f"{icon} {name}: {check.get('path', '?')}")
+            self.log.append("")
+            self.log.append("💡 如果 Chromium 显示 ❌，说明浏览器组件缺失，需要重新安装。")
+            self.log.append("💡 如果后端无响应，请检查防火墙是否阻止了本程序。")
+        except Exception as e:
+            self.log.append(f"❌ 自检失败: {e}")
+            self.log.append("💡 后端服务可能未启动，请尝试重启程序。")
         QMessageBox.critical(self, "错误", msg)
 
     def _reset(self):

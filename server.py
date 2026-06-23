@@ -272,6 +272,37 @@ def admin_stats():
 
 
 # ============================================================
+# 自检 API
+# ============================================================
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    checks = {}
+    # 检查 Chromium
+    exe = _find_chromium_exe()
+    checks["chromium"] = {"ok": bool(exe), "path": str(exe) if exe else "未找到"}
+    # 检查 Playwright
+    try:
+        from playwright.async_api import async_playwright
+        checks["playwright"] = {"ok": True, "path": "已安装"}
+    except ImportError as e:
+        checks["playwright"] = {"ok": False, "path": str(e)}
+    # 检查数据库
+    try:
+        db = get_db()
+        db.execute("SELECT 1")
+        checks["database"] = {"ok": True, "path": str(DATA_DIR / "bon_downloader.db")}
+    except Exception as e:
+        checks["database"] = {"ok": False, "path": str(e)}
+    # 检查下载目录
+    dl_dir = Path.home() / "Downloads" / "DouyinVideos"
+    checks["download_dir"] = {"ok": dl_dir.exists(), "path": str(dl_dir)}
+    # 检查 Playwright 缓存
+    checks["playwright_cache"] = {"ok": bool(PLAYWRIGHT_CACHE), "path": PLAYWRIGHT_CACHE}
+    all_ok = all(c.get("ok") for c in checks.values())
+    return jsonify({"status": "ok" if all_ok else "degraded", "checks": checks})
+
+
+# ============================================================
 # 下载 API
 # ============================================================
 download_tasks = {}
@@ -302,9 +333,9 @@ def _do_download(task_id, url):
 
 async def _async_download(task_id, url):
     download_tasks[task_id] = {"status": "parsing", "progress": 0}
-    m = re.search(r"https?://(?:v\.douyin\.com|www\.douyin\.com)\S+", url)
+    m = re.search(r"https?://(?:v\.douyin\.com|www\.douyin\.com|www\.iesdouyin\.com)\S+", url)
     if m: url = m.group(0).rstrip("/")
-    else: return {"status": "error", "error": "未识别到抖音链接"}
+    else: return {"status": "error", "error": "未识别到抖音链接，请粘贴完整的抖音分享链接（如 v.douyin.com/xxx 或 www.iesdouyin.com/share/video/xxx）"}
 
     from playwright.async_api import async_playwright
     async with async_playwright() as p:
