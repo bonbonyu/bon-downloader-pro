@@ -85,6 +85,8 @@ class DownloadThread(QThread):
                     p = t.get("progress", 0)
                     self.progress.emit(p)
                     self.log.emit(f"下载中: {p}%")
+            # 超时
+            return {"status": "error", "error": "下载超时，请重试"}
 
 
 class LoginWidget(QWidget):
@@ -305,9 +307,16 @@ class DownloadWidget(QWidget):
 
     def _on_finished(self, res):
         self._reset()
+        if not res:
+            self.log.append("❌ 下载异常：无返回结果")
+            return
         if res.get("status") == "done":
             self.log.append("✅ 下载完成")
             QMessageBox.information(self, "成功", "视频已保存到 Downloads/DouyinVideos/")
+        elif res.get("status") == "error":
+            self.log.append(f"❌ {res.get('error', '下载失败')}")
+        elif res.get("status") == "cancelled":
+            self.log.append("⏹ 已取消")
 
     def _on_error(self, msg):
         self._reset()
